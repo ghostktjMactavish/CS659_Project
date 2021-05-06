@@ -59,6 +59,8 @@ class A3CFFSoftmax(chainer.ChainList, a3c.A3CModel):
     """An example of A3C feedforward softmax policy."""
 
     def __init__(self, ndim_obs, n_actions, hidden_sizes=(200, 200)):
+        print('Inside A3CFF')
+        print(n_actions)
         self.pi = policies.SoftmaxPolicy(
             model=links.MLP(ndim_obs, n_actions, hidden_sizes))
         self.v = links.MLP(ndim_obs, 1, hidden_sizes=hidden_sizes)
@@ -76,11 +78,7 @@ class A3CLSTMGaussian(chainer.ChainList, a3c.A3CModel, RecurrentChainMixin):
         self.v_head = L.Linear(obs_size, hidden_size)
         self.pi_lstm = L.LSTM(hidden_size, lstm_size)
         self.v_lstm = L.LSTM(hidden_size, lstm_size)
-        #self.pi = policies.FCSoftmaxPolicy(
-            lstm_size, action_size)
-        #self.pi = policies.LinearGaussianPolicyWithDiagonalCovariance(
-        #    lstm_size, action_size)
-        self.pi = policies.FCSoftmaxPolicy(lstm_size, action_size)
+        self.pi = policies.FCGaussianPolicy(lstm_size, action_size)
         self.v = v_function.FCVFunction(lstm_size)
         super().__init__(self.pi_head, self.v_head,
                          self.pi_lstm, self.v_lstm, self.pi, self.v)
@@ -108,9 +106,12 @@ def make_a3c_agent(obs_space_dim, action_space_dim):
     obs_high = np.array([1] * obs_space_dim,dtype=np.float32)
     ac_low = np.array([-1] * action_space_dim,dtype=np.float32)
     ac_high = np.array([1] * action_space_dim,dtype=np.float32)
+    #print('Action Bounds')
+    #print(ac_low,ac_high)
     obsSpace = gym.spaces.Box(obs_low, obs_high)
     actSpace = gym.spaces.Box(ac_low, ac_high)
-    model = A3CFFSoftmax(obs_space_dim, action_space_dim)
+    #print(actSpace)
+    model = A3CLSTMGaussian(obs_space_dim, action_space_dim)
 
     optimizer = chainer.optimizers.Adam(eps=1e-2)
     optimizer.setup(model)
@@ -135,39 +136,6 @@ def make_a3c_agent(obs_space_dim, action_space_dim):
     return agent
 
 
-def make_ddqn_agent(obs_space_dim, action_space_dim):
-    gamma = 1
-    obs_low = np.array([-1] * obs_space_dim,dtype=np.float32)
-    obs_high = np.array([1] * obs_space_dim,dtype=np.float32)
-    ac_low = np.array([-1] * action_space_dim,dtype=np.float32)
-    ac_high = np.array([1] * action_space_dim,dtype=np.float32)
-    obsSpace = gym.spaces.Box(obs_low, obs_high)
-    actSpace = gym.spaces.Box(ac_low, ac_high)
-
-    qFunc = q_functions.FCQuadraticStateQFunction(
-            obsSpace.low.size, actSpace.low.size,
-            n_hidden_channels=50,
-            n_hidden_layers=2,
-            action_space=actSpace)
-    optimizer = chainer.optimizers.Adam(eps=1e-2)
-    optimizer.setup(qFunc)
-    #explorer = explorers.AdditiveGaussian(scale=0.5,low=ac_low,high=ac_high)
-    #explorer = explorers.Boltzmann(T=1.0)
-    #rand_ac = lambda : 2*np.random.rand(action_space_dim)-1.0
-    #explorer = explorers.ConstantEpsilonGreedy(epsilon=0.1,random_action_func=rand_ac)
-
-    # Use AdditiveOU for exploration
-    ou_sigma = (actSpace.high - actSpace.low) * 0.25
-    explorer = explorers.AdditiveOU(sigma=ou_sigma)
-
-    replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10 ** 4)
-    phi = lambda x: x.astype(np.float32, copy=False)
-    agent = chainerrl.agents.DoubleDQN(
-        qFunc, optimizer, replay_buffer, gamma, explorer,
-        replay_start_size=5000, update_interval=1,
-        target_update_interval=100, phi=phi)
-    return agent
-
 agent = make_a3c_agent(4,2)
 
 def train(algo, obs_space_dim, action_space_dim, alpha_arg):
@@ -177,6 +145,7 @@ def train(algo, obs_space_dim, action_space_dim, alpha_arg):
     algo = 'a3C'
     obs_space_dim = int(obs_space_dim)
     action_space_dim = int(action_space_dim)
+    #print(action_space_dim)
     agent = make_a3c_agent(obs_space_dim, action_space_dim)
 
 def update(state, r):
@@ -189,10 +158,12 @@ def update(state, r):
 def act(state):
     state = np.array(state, dtype=np.float32)
     action = agent.act(state)
+    #print(action)
     action = np.minimum(1.0, np.maximum(-1.0, action))
     #u =  array.array('d', action.tolist())
     u =  np.array(action.tolist(),dtype=np.float32)
-
+    #print(u)
+    #print(np.array([0.0,0.0]))
     return u
 
 def stop_episode():
@@ -211,4 +182,4 @@ def load(loaddir):
     agent.load(loaddir)
 
 def hello():
-    print("Hello New World 1")
+    print("Hello New World A3C")

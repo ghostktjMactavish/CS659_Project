@@ -10,6 +10,8 @@ function [numEpisode, elapsedTime, bestRob, bestXout, bestYout] = falsify_RL_a3c
 %             size(expParams.output_range, 1), size(expParams.input_range, 1),...
 %             expParams.alpha);
 %     else
+    %disp('Input Size')
+    %disp(size(expParams.input_range, 1))
     py.a3c_agent.train(expParams.option,...
             size(expParams.output_range, 1), size(expParams.input_range, 1), 1);
     tic;
