@@ -20,7 +20,7 @@ from chainer import links as L
 import numpy as np
 
 import chainerrl
-from chainerrl.agents import a3c
+from chainerrl.agents.dqn import DQN
 from chainerrl import experiments
 from chainerrl import links
 from chainerrl import misc
@@ -29,7 +29,6 @@ from chainerrl.optimizers import rmsprop_async
 from chainerrl import policies
 from chainerrl.recurrent import RecurrentChainMixin
 from chainerrl import v_function
-from chainerrl.agents.dqn import DQN
 from chainerrl import explorers
 from chainerrl import q_functions
 from chainerrl import replay_buffer
@@ -42,7 +41,7 @@ from chainerrl import v_functions
 def phi(obs):
     return obs.astype(np.float32)
 
-def make_ddqn_agent(obs_space_dim, action_space_dim):
+def make_cat_dqn_agent(obs_space_dim, action_space_dim):
     gamma = 1
     obs_low = np.array([-1] * obs_space_dim,dtype=np.float32)
     obs_high = np.array([1] * obs_space_dim,dtype=np.float32)
@@ -50,7 +49,15 @@ def make_ddqn_agent(obs_space_dim, action_space_dim):
     ac_high = np.array([1] * action_space_dim,dtype=np.float32)
     obsSpace = gym.spaces.Box(obs_low, obs_high)
     actSpace = gym.spaces.Box(ac_low, ac_high)
+    #obs_size = 4
+    n_atoms = 51
+    v_min = 0
+    v_max = 100
 
+    #qFunc = q_functions.DistributionalFCStateQFunctionWithDiscreteAction(
+    #    obs_space_dim, action_space_dim, n_atoms, v_min, v_max,
+    #    n_hidden_channels=50,
+    #    n_hidden_layers=2)
     qFunc = q_functions.FCQuadraticStateQFunction(
             obsSpace.low.size, actSpace.low.size,
             n_hidden_channels=50,
@@ -69,22 +76,22 @@ def make_ddqn_agent(obs_space_dim, action_space_dim):
 
     replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10 ** 4)
     phi = lambda x: x.astype(np.float32, copy=False)
-    agent = chainerrl.agents.DoubleDQN(
+    agent = chainerrl.agents.CategoricalDQN(
         qFunc, optimizer, replay_buffer, gamma, explorer,
         replay_start_size=5000, update_interval=1,
         target_update_interval=100, phi=phi)
     return agent
 
-agent = make_ddqn_agent(4,2)
+agent = make_cat_dqn_agent(4,2)
 
 def train(algo, obs_space_dim, action_space_dim, alpha_arg):
     global agent
     global alpha
     alpha = alpha_arg
-    algo = 'DDQN'
+    algo = 'cat_dqn'
     obs_space_dim = int(obs_space_dim)
     action_space_dim = int(action_space_dim)
-    agent = make_ddqn_agent(obs_space_dim, action_space_dim)
+    agent = make_cat_dqn_agent(obs_space_dim, action_space_dim)
 
 def update(state, r):
     reward = math.exp( - alpha * r) - 1.0
@@ -120,4 +127,4 @@ def load(loaddir):
     agent.load(loaddir)
 
 def hello():
-    print("Hello New World DDQN")
+    print("Hello New World cat_dqn")

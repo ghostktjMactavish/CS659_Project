@@ -4,10 +4,15 @@ clear all;
 global  logDir;
 
 logDir = './log/';
-runs = 20;
+runs = 100;
 maxEpisodes = 200;
 
-init_configs = struct('runs', runs,'maxEpisodes', maxEpisodes,'agentName', '/DDQN_Agent');
+%Change agent name accordingly
+%init_configs = struct('runs', runs,'maxEpisodes', maxEpisodes,'agentName', '/A3C_Agent');
+%init_configs = struct('runs', runs,'maxEpisodes', maxEpisodes,'agentName', '/DDQN_Agent');
+%init_configs = struct('runs', runs,'maxEpisodes', maxEpisodes,'agentName', '/DQN_Agent');
+%init_configs = struct('runs', runs,'maxEpisodes', maxEpisodes,'agentName', '/CatDQN_Agent');
+init_configs = struct('runs', runs,'maxEpisodes', maxEpisodes,'agentName', '/PCL_Agent');
 
 % Setup Taliro Breach etc.            
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%             
@@ -72,11 +77,17 @@ formula9 = fml9(AT_tmpl,gear2low,gear3low,gear4low);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %formulas 
-formulas = {formula8};
+formulas = {formula3};
 sampleTimes = [ 1 ];
 
 % Algo to run
-algos = {{'RL', 'DDQN', 'DDQN_AT'}};%{'s-taliro', 'CE', 'arch2014_staliro'}};%};%,};
+%algos  = {{'RL', 'DQN', 'DQN_AT'}};
+%algos = {{'RL', 'CatDQN', 'CatDQN_AT'}};
+algos = {{'RL', 'PCL', 'PCL_AT'}};
+%algos = {{'RL', 'DDQN', 'DDQN_AT'}};
+%algos = {{'RL', 'A3C', 'A3C_AT'}};
+%algos = {{'s-taliro', 'CE', 'arch2014_staliro'}};
+%{'RL', 'DDQN', 'DDQN_AT'}};};%{'s-taliro', 'CE', 'arch2014_staliro'}};%};%,};
 
 
 %Experiment configurations 
@@ -102,7 +113,7 @@ for k = 1:size(formulas, 2)
     end
 end
 
-experiment_name = strcat('AT_RL_DDQN_st_',exp_params.expName,'_Time_',num2str(sampleTimes(1)));
+experiment_name = strcat('AT_RL_',exp_params.simlink_model,'_',exp_params.expName,'_Time_',num2str(sampleTimes(1)));
 
 run_experiment(experiment_name, shuffle_array(experiments));
 
